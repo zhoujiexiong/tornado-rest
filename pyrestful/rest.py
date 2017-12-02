@@ -26,6 +26,7 @@ import json
 import sys
 from pyrestful import mediatypes, types
 from pyconvert.pyconv import convertXML2OBJ, convert2XML, convertJSON2OBJ, convert2JSON
+from tornado.gen import coroutine
 
 
 class PyRestfulException(Exception):
@@ -128,26 +129,32 @@ def delete(*params, **kwparams):
 
 
 class RestHandler(tornado.web.RequestHandler):
+    @coroutine
     def get(self):
         """ Executes get method """
-        self._exe('GET')
+        yield self._exe('GET')
 
+    @coroutine
     def post(self):
         """ Executes post method """
-        self._exe('POST')
+        yield self._exe('POST')
 
+    @coroutine
     def put(self):
         """ Executes put method """
-        self._exe('PUT')
+        yield self._exe('PUT')
 
+    @coroutine
     def patch(self):
         """ Executes patch method """
-        self._exe('PATCH')
+        yield self._exe('PATCH')
 
+    @coroutine
     def delete(self):
         """ Executes put method """
-        self._exe('DELETE')
+        yield self._exe('DELETE')
 
+    @coroutine
     def _exe(self, method):
         """ Executes the python function for the Rest Service """
         request_path = self.request.path
@@ -205,6 +212,9 @@ class RestHandler(tornado.web.RequestHandler):
                             param_obj = convertJSON2OBJ(params_types[0], json.loads(body))
                         p_values.append(param_obj)
                     response = operation(*p_values)
+
+                    if isinstance(response, tornado.concurrent.Future):
+                        response = yield response
 
                     if response == None:
                         return
