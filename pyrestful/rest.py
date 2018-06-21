@@ -26,7 +26,7 @@ import json
 import sys
 from pyrestful import mediatypes, types
 from pyconvert.pyconv import convertXML2OBJ, convert2XML, convertJSON2OBJ, convert2JSON
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Return
 
 
 class PyRestfulException(Exception):
@@ -188,9 +188,8 @@ class RestHandler(tornado.web.RequestHandler):
             if operation._method == self.request.method and service_name == services_from_request and len(
                     service_params) + len(service_name) == len(services_and_params):
                 try:
-                    params_values = self._find_params_value_of_url(service_name,
-                                                                   request_path) + self._find_params_value_of_arguments(
-                        operation)
+                    params_values = self._find_params_value_of_url(service_name, request_path)
+                    # params_values += self._find_params_value_of_arguments(operation)
                     p_values = self._convert_params_values(params_values, params_types)
                     if consumes == None and produces == None:
                         consumes = content_type
@@ -216,14 +215,14 @@ class RestHandler(tornado.web.RequestHandler):
                     if isinstance(response, tornado.concurrent.Future):
                         response = yield response
 
-                    if response == None:
-                        return
+                    if response is None:
+                        break
 
                     if produces:
                         self.set_header('Content-Type', produces)
 
                     if manual_response:
-                        return
+                        break
 
                     if produces == mediatypes.APPLICATION_JSON and hasattr(response, '__module__'):
                         response = convert2JSON(response)
@@ -249,6 +248,7 @@ class RestHandler(tornado.web.RequestHandler):
                     self.gen_http_error(500, 'Internal Server Error : %s' % detail)
                     if catch_fire == True:
                         raise PyRestfulException(detail)
+                    break
 
     def _find_params_value_of_url(self, services, url):
         """ Find the values of path params """
